@@ -28,3 +28,77 @@
     ),
   0)
 )
+
+
+
+** Updated Model 2.0
+
+
+=IF(
+  OR(
+    COUNTIF($F7:$Z7,">0")<2,                                                    ← [VAR1: Min positive values = 2] B3 
+    
+    AA$4>EDATE(MAX($F$4:$Z$4),15),                                             ← [VAR2: Forecast horizon = 15 months] B4
+    
+    SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-24)),--($F$4:$Z$4<AA$4),--($F7:$Z7>0))<=1,    ← [VAR3: Lookback = 24 months] [VAR4: Min positives = 1]  B5 , B6 
+    
+    AND(
+      SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-15)),--($F$4:$Z$4<AA$4),$F7:$Z7)=0,         ← [VAR5: Recency window = 15 months]B7 
+      SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-36)),--($F$4:$Z$4<AA$4),--($F7:$Z7>0))<=1   ← [VAR6: Extended lookback = 36 months] [VAR7: Min positives = 1] B8
+    ),
+    
+    AND(
+      SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-24)),--($F$4:$Z$4<AA$4),--($F7:$Z7>0))>=4,  ← [VAR8: Lookback = 24 months] [VAR9: Min sample for volatility = 4] B10 ,B11
+      IFERROR(
+        STDEV.S(IF(($F$4:$Z$4>=EDATE(AA$4,-24))*($F$4:$Z$4<AA$4)*($F7:$Z7>0),$F7:$Z7)) /    ← [VAR10: Lookback = 24 months]B12
+        IFERROR(AVERAGE(IF(($F$4:$Z$4>=EDATE(AA$4,-24))*($F$4:$Z$4<AA$4)*($F7:$Z7>0),$F7:$Z7)),0),    ← [VAR11: Lookback = 24 months] B13
+      0)>3.5                                                                    ← [VAR12: CV threshold = 3.5] B14
+    )
+  ),
+  0,
+  ROUNDUP(
+    MAX(0,
+      FORECAST.ETS(AA$4,TRANSPOSE($F7:$Z7),TRANSPOSE($F$4:$Z$4),$C$9,1,5)
+      * $C$11
+      * IF(MONTH(AA$4)=12,$C$16,1)
+      * IF(MONTH(AA$4)=3,$C$18,1)
+      * IF(MONTH(AA$4)=8,$C$20,1)
+    ),
+  0)
+)
+
+
+
+***Model 3.0 - Summary and controls are variables.***
+
+=IF(
+  OR(
+    COUNTIF($F7:$Z7,">0")<'Summary & Controls '!$B$3,
+    AA$4>EDATE(MAX($F$4:$Z$4),'Summary & Controls '!$B$4),
+    SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-'Summary & Controls '!$B$5)),--($F$4:$Z$4<AA$4),$F7:$Z7)<='Summary & Controls '!$B$6,
+    AND(
+      SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-'Summary & Controls '!$B$7)),--($F$4:$Z$4<AA$4),$F7:$Z7)=0,
+      SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-'Summary & Controls '!$B$8)),--($F$4:$Z$4<AA$4),--($F7:$Z7>0))<='Summary & Controls '!$B$9
+    ),
+    AND(
+      SUMPRODUCT(--($F$4:$Z$4>=EDATE(AA$4,-'Summary & Controls '!$B$10)),--($F$4:$Z$4<AA$4),--($F7:$Z7>0))>='Summary & Controls '!$B$11,
+      IFERROR(
+        STDEV.S(IF(($F$4:$Z$4>=EDATE(AA$4,-'Summary & Controls '!$B$12))*($F$4:$Z$4<AA$4)*($F7:$Z7>0),$F7:$Z7)) /
+        IFERROR(AVERAGE(IF(($F$4:$Z$4>=EDATE(AA$4,-'Summary & Controls '!$B$13))*($F$4:$Z$4<AA$4)*($F7:$Z7>0),$F7:$Z7)),0),
+      0)>'Summary & Controls '!$B$14
+    )
+  ),
+  0,
+  ROUNDUP(
+    MAX(0,
+      FORECAST.ETS(AA$4,TRANSPOSE($F7:$Z7),TRANSPOSE($F$4:$Z$4),$C$9,1,5)
+      * $C$11
+      * IF(MONTH(AA$4)=12,$C$16,1)
+      * IF(MONTH(AA$4)=3,$C$18,1)
+      * IF(MONTH(AA$4)=8,$C$20,1)
+    ),
+  0)
+)
+
+
+
